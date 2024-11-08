@@ -167,6 +167,7 @@ def main():
         snake.move(apple)
         # Проверяем, не столкнулась ли змейка с собой:
         if snake.positions.count(snake.get_head_position) > 1:
+            clock.tick(0.5)
             snake.reset()
         apple.draw()
         snake.draw()
