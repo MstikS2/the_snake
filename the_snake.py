@@ -32,10 +32,22 @@ clock = pygame.time.Clock()
 
 
 DIRECTION_KEYS = {
-    (pygame.K_s, pygame.K_DOWN, LEFT, RIGHT): DOWN,
-    (pygame.K_w, pygame.K_UP, LEFT, RIGHT): UP,
-    (pygame.K_a, pygame.K_LEFT, UP, DOWN): LEFT,
-    (pygame.K_d, pygame.K_RIGHT, UP, DOWN): RIGHT
+    (pygame.K_s, RIGHT): DOWN,
+    (pygame.K_s, LEFT): DOWN,
+    (pygame.K_DOWN, LEFT): DOWN,
+    (pygame.K_DOWN, RIGHT): DOWN,
+    (pygame.K_w, RIGHT): UP,
+    (pygame.K_w, LEFT): UP,
+    (pygame.K_UP, LEFT): UP,
+    (pygame.K_UP, RIGHT): UP,
+    (pygame.K_a, DOWN): LEFT,
+    (pygame.K_a, UP): LEFT,
+    (pygame.K_LEFT, UP): LEFT,
+    (pygame.K_LEFT, DOWN): LEFT,
+    (pygame.K_d, DOWN): RIGHT,
+    (pygame.K_d, UP): RIGHT,
+    (pygame.K_RIGHT, UP): RIGHT,
+    (pygame.K_RIGHT, DOWN): RIGHT
 }
 
 
@@ -101,23 +113,17 @@ class Snake(GameObject):
         Обновляет позицию змейки (добовляет новую голову в начало списка
         и удаляет последний элемент - хвост).
         """
-        self.positions.insert(
-            0,
-            ((self.get_head_position[0] + self.direction[0] * 20)
-             % SCREEN_WIDTH,
-             (self.get_head_position[1] + self.direction[1] * 20)
-             % GAME_HEIGHT)
-        )
-
+        x_head_position, y_head_position = self.get_head_position
+        new_x_head_position = (x_head_position
+                               + self.direction[0] * 20) % SCREEN_WIDTH
+        new_y_head_position = (y_head_position
+                               + self.direction[1] * 20) % GAME_HEIGHT
+        self.positions.insert(0, (new_x_head_position, new_y_head_position))
         # Если яблоко не съедено:
-        if self.get_head_position != apple.position:
+        if (new_x_head_position, new_y_head_position) != apple.position:
             # Удаляем сегмент из змейки
             # И сохраняем координаты для закраски в draw():
-            self.last = self.positions.pop(-1)
-        # Если яблоко съедено:
-        else:
-            self.length += 1
-            apple.randomize_position(self.positions)
+            self.last = self.positions.pop()
 
     def reset(self):
         """Сбрасывает змейку в начальное состояние."""
@@ -142,9 +148,9 @@ def handle_keys(game_object: Snake):
             pygame.quit()
             raise SystemExit
         elif event.type == pygame.KEYDOWN:
-            for keys in DIRECTION_KEYS:
-                if event.key in keys and game_object.direction in keys:
-                    game_object.update_direction(DIRECTION_KEYS[keys])
+            cur_key_direction = (event.key, game_object.direction)
+            if cur_key_direction in DIRECTION_KEYS:
+                game_object.update_direction(DIRECTION_KEYS[cur_key_direction])
 
 
 def main():
@@ -161,10 +167,11 @@ def main():
     while True:
         handle_keys(snake)
         clock.tick(SPEED)
-        # Если змейка съела яблоко, метод move не обновляет позицию
-        # Последнего сегмента, из-за чего эта позиция не передаётся в draw,
-        # draw его не закрашивает и змейка увеличивается на 1 сегмент.
         snake.move(apple)
+        # Проверяем, съела ли змейка яблоко:
+        if snake.get_head_position == apple.position:
+            snake.length += 1
+            apple.randomize_position(snake.positions)
         # Проверяем, не столкнулась ли змейка с собой:
         if snake.positions.count(snake.get_head_position) > 1:
             clock.tick(0.5)
