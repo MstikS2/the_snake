@@ -89,7 +89,6 @@ class Snake(GameObject):
     def __init__(self):
         super().__init__()
         self.reset()
-        self.body_color = SNAKE_COLOR
 
     def draw(self):
         """Отрисовывает змейку."""
@@ -99,7 +98,7 @@ class Snake(GameObject):
         pygame.draw.rect(screen, BORDER_COLOR, head_rect, 1)
 
         # Затирание последнего сегмента
-        if self.last != self.positions[0]:
+        if self.last:
             last_rect = pygame.Rect(self.last, (GRID_SIZE, GRID_SIZE))
             pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR, last_rect)
 
@@ -119,8 +118,11 @@ class Snake(GameObject):
         new_y_head_position = (y_head_position
                                + self.direction[1] * 20) % GAME_HEIGHT
         self.positions.insert(0, (new_x_head_position, new_y_head_position))
-        # Если яблоко не съедено:
-        if (new_x_head_position, new_y_head_position) != apple.position:
+        # При съеденном яблоке:
+        if self.length == len(self.positions):
+            self.last = None
+        # При несъеденном яблоке:
+        else:
             # Удаляем сегмент из змейки
             # И сохраняем координаты для закраски в draw():
             self.last = self.positions.pop()
@@ -134,6 +136,7 @@ class Snake(GameObject):
         self.length = 1
         self.positions = [self.position]
         self.direction = RIGHT
+        self.body_color = SNAKE_COLOR
 
     def update_direction(self, new_direction):
         """Метод обновления направления после нажатия на кнопку."""
@@ -151,6 +154,14 @@ def handle_keys(game_object: Snake):
             cur_key_direction = (event.key, game_object.direction)
             if cur_key_direction in DIRECTION_KEYS:
                 game_object.update_direction(DIRECTION_KEYS[cur_key_direction])
+                # Оказалось, что если, например, при движении вправо,
+                # Быстро нажать клавишу вверх и клавишу влево, то змейка
+                # Развернётся на 180 градусов, не успев переползти
+                # На клетку вверх. В результате, либо она просто двигается
+                # Назад, если состоит из 1 клетки, либо сталкивается
+                # Со своей шеей. Чтобы предотвратить обрабатывание более
+                # 1 изменения направления в ходе 1 итерации главного цикла:
+                break
 
 
 def main():
@@ -173,7 +184,7 @@ def main():
             snake.length += 1
             apple.randomize_position(snake.positions)
         # Проверяем, не столкнулась ли змейка с собой:
-        if snake.positions.count(snake.get_head_position) > 1:
+        elif snake.get_head_position in snake.positions[2:]:
             clock.tick(0.5)
             snake.reset()
         apple.draw()
