@@ -98,7 +98,11 @@ class Snake(GameObject):
         pygame.draw.rect(screen, BORDER_COLOR, head_rect, 1)
 
         # Затирание последнего сегмента
-        if self.last:
+        # Проверка совпадения головы и хвоста нужна для случаев,
+        # Когда голова заползает на клетку, где только что был хвост.
+        # В таком случае без проверки клетка с головой закрашивается,
+        # И в дальнейшем в змее остаётся дыра в этом месте
+        if self.last and self.last != self.get_head_position:
             last_rect = pygame.Rect(self.last, (GRID_SIZE, GRID_SIZE))
             pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR, last_rect)
 
