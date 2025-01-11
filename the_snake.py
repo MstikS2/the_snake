@@ -5,9 +5,6 @@ import pygame
 SCREEN_WIDTH, SCREEN_HEIGHT = 640, 500
 GRID_SIZE = 20
 GAME_HEIGHT = SCREEN_HEIGHT - GRID_SIZE
-# Эти константы не нужны, но без них код не проходит автоматические тесты:
-GRID_WIDTH = SCREEN_WIDTH // GRID_SIZE
-GRID_HEIGHT = SCREEN_HEIGHT // GRID_SIZE
 
 UP = (0, -1)
 DOWN = (0, 1)
@@ -25,8 +22,10 @@ SNAKE_COLOR = (0, 255, 0)
 SPEED = 20
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
+icon = pygame.image.load('SNAKE.ico')
+pygame.display.set_icon(icon)
 
-pygame.display.set_caption('Змейка')
+pygame.display.set_caption('Snake')
 
 clock = pygame.time.Clock()
 
@@ -52,69 +51,69 @@ DIRECTION_KEYS = {
 
 
 class GameObject:
-    """Базовый класс, от которого наследуются другие игровые объекты."""
+    """The base class from which other game objects inherit."""
 
     def __init__(self) -> None:
         self.body_color = None
         self.position = ((SCREEN_WIDTH // 2), (GAME_HEIGHT // 2))
 
     def draw(self):
-        """Заготовка метода для отрисовки объекта."""
+        """Preparing a method for drawing an object."""
         rect = (pygame.Rect(self.position, (GRID_SIZE, GRID_SIZE)))
         pygame.draw.rect(screen, self.body_color, rect)
         pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
 
 
 class Apple(GameObject):
-    """Класс, описывающий яблоко и действия с ним."""
+    """A class describing an apple and actions with it."""
 
     def __init__(self):
         self.body_color = APPLE_COLOR
         self.randomize_position()
 
     def randomize_position(self, snake_positions=None):
-        """Устанавливает случайное положение яблока на игровом поле."""
+        """Sets a random position of the apple on the playing field."""
         while True:
             new_position = (randrange(0, SCREEN_WIDTH, GRID_SIZE),
                             randrange(0, GAME_HEIGHT, GRID_SIZE))
-            # Проверяем, не появилось ли яблоко в змее:
+            # Checking if the apple has appeared in the snake:
             if not snake_positions or (new_position not in snake_positions):
                 self.position = new_position
                 break
 
 
 class Snake(GameObject):
-    """Класс, описывающий змейку и её поведение."""
+    """A class describing a snake and its behavior."""
 
     def __init__(self):
         super().__init__()
         self.reset()
 
     def draw(self):
-        """Отрисовывает змейку."""
-        # Отрисовка головы змейки
+        """Draws the snake."""
+        # Draws snake head
         head_rect = pygame.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE))
         pygame.draw.rect(screen, self.body_color, head_rect)
         pygame.draw.rect(screen, BORDER_COLOR, head_rect, 1)
 
-        # Затирание последнего сегмента
-        # Проверка совпадения головы и хвоста нужна для случаев,
-        # Когда голова заползает на клетку, где только что был хвост.
-        # В таком случае без проверки клетка с головой закрашивается,
-        # И в дальнейшем в змее остаётся дыра в этом месте
+        # Erasing the last element
+        # Checking the coincidence of the head and tail is needed for cases
+        # When the head crawls onto the cell where the tail just was.
+        # In this case, without checking, the cell with its head is painted
+        # Over and in the future remains a hole in the snake in this place
         if self.last and self.last != self.get_head_position:
             last_rect = pygame.Rect(self.last, (GRID_SIZE, GRID_SIZE))
             pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR, last_rect)
 
     @property
     def get_head_position(self):
-        """Возвращает позицию головы змейки."""
+        """Returns snake head position."""
         return self.positions[0]
 
     def move(self, apple):
         """
-        Обновляет позицию змейки (добовляет новую голову в начало списка
-        и удаляет последний элемент - хвост).
+        Updates the position of the snake (adds a new head to the beginning 
+        of the list and removes the last element - the tail).
         """
         x_head_position, y_head_position = self.get_head_position
         new_x_head_position = (x_head_position
@@ -122,33 +121,33 @@ class Snake(GameObject):
         new_y_head_position = (y_head_position
                                + self.direction[1] * 20) % GAME_HEIGHT
         self.positions.insert(0, (new_x_head_position, new_y_head_position))
-        # При съеденном яблоке:
+        # When the apple is eaten:
         if self.length == len(self.positions):
             self.last = None
-        # При несъеденном яблоке:
+        # When the apple is not eaten:
         else:
-            # Удаляем сегмент из змейки
-            # И сохраняем координаты для закраски в draw():
+            # Removing a segment from the snake
+            # And save the coordinates for shading in draw():
             self.last = self.positions.pop()
 
     def reset(self):
-        """Сбрасывает змейку в начальное состояние."""
-        # Затираем змейку:
+        """Resets the snake to its initial state."""
+        # Erasing the snake:
         background_rect = pygame.Rect((0, 0), (SCREEN_WIDTH, GAME_HEIGHT))
         pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR, background_rect)
-        # Обнуляем змейку:
+        # Reseting the snake:
         self.length = 1
         self.positions = [self.position]
         self.direction = RIGHT
         self.body_color = SNAKE_COLOR
 
     def update_direction(self, new_direction):
-        """Метод обновления направления после нажатия на кнопку."""
+        """Method for updating the direction after pressing the button."""
         self.direction = new_direction
 
 
 def handle_keys(game_object: Snake):
-    """Обрабатывает действия пользователя."""
+    """Processes user actions."""
     for event in pygame.event.get():
         if (event.type == pygame.QUIT
            or event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
@@ -158,24 +157,19 @@ def handle_keys(game_object: Snake):
             cur_key_direction = (event.key, game_object.direction)
             if cur_key_direction in DIRECTION_KEYS:
                 game_object.update_direction(DIRECTION_KEYS[cur_key_direction])
-                # Оказалось, что если, например, при движении вправо,
-                # Быстро нажать клавишу вверх и клавишу влево, то змейка
-                # Развернётся на 180 градусов, не успев переползти
-                # На клетку вверх. В результате, либо она просто двигается
-                # Назад, если состоит из 1 клетки, либо сталкивается
-                # Со своей шеей. Чтобы предотвратить обрабатывание более
-                # 1 изменения направления в ходе 1 итерации главного цикла:
+                # Preventing changing the direction more than 1 time 
+                # Per iteration
                 break
 
 
 def main():
-    """Основной игровой цикл."""
-    # Инициализация PyGame:
+    """Main game loop."""
+    # Initializing PyGame:
     pygame.init()
     font = pygame.font.SysFont('Comic Sams MS', 30)
     apple = Apple()
     snake = Snake()
-    # Блок для вывода счёта:
+    # Block for displaying the score:
     score_background = pygame.Rect((0, GAME_HEIGHT),
                                    (SCREEN_WIDTH, SCREEN_HEIGHT))
 
@@ -183,17 +177,17 @@ def main():
         handle_keys(snake)
         clock.tick(SPEED)
         snake.move(apple)
-        # Проверяем, съела ли змейка яблоко:
+        # Checking if snake ate the apple:
         if snake.get_head_position == apple.position:
             snake.length += 1
             apple.randomize_position(snake.positions)
-        # Проверяем, не столкнулась ли змейка с собой:
+        # Checking if the snake has collided with itself:
         elif snake.get_head_position in snake.positions[2:]:
             clock.tick(0.5)
             snake.reset()
         apple.draw()
         snake.draw()
-        # Обновление счёта:
+        # Score update:
         score = font.render(f'Score: {snake.length}', False, (0, 0, 0))
         pygame.draw.rect(screen, (230, 230, 230), score_background)
         screen.blit(score, (SCREEN_WIDTH / 2 - 50, GAME_HEIGHT))
