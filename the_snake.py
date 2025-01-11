@@ -112,7 +112,7 @@ class Snake(GameObject):
 
     def move(self, apple):
         """
-        Updates the position of the snake (adds a new head to the beginning 
+        Updates the position of the snake (adds a new head to the beginning
         of the list and removes the last element - the tail).
         """
         x_head_position, y_head_position = self.get_head_position
@@ -157,7 +157,7 @@ def handle_keys(game_object: Snake):
             cur_key_direction = (event.key, game_object.direction)
             if cur_key_direction in DIRECTION_KEYS:
                 game_object.update_direction(DIRECTION_KEYS[cur_key_direction])
-                # Preventing changing the direction more than 1 time 
+                # Preventing changing the direction more than 1 time
                 # Per iteration
                 break
 
