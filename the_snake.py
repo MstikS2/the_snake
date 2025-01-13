@@ -2,6 +2,8 @@ from random import randrange
 
 import pygame
 
+GRAPHICS_DIR = 'graphics/'
+
 SCREEN_WIDTH, SCREEN_HEIGHT = 640, 500
 GRID_SIZE = 20
 GAME_HEIGHT = SCREEN_HEIGHT - GRID_SIZE
@@ -22,7 +24,7 @@ SNAKE_COLOR = (0, 255, 0)
 SPEED = 20
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
-icon = pygame.image.load('SNAKE.ico')
+icon = pygame.image.load(f'{GRAPHICS_DIR}SNAKE.ico')
 pygame.display.set_icon(icon)
 
 pygame.display.set_caption('Snake')
