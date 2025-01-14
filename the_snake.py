@@ -8,21 +8,21 @@ GRAPHICS_DIR = 'graphics/'
 SCREEN_WIDTH, SCREEN_HEIGHT = 640, 500
 GRID_SIZE = 20
 GAME_HEIGHT = SCREEN_HEIGHT - GRID_SIZE
-GAME_SPACE = [(i, j) for j in range(0, GAME_HEIGHT + 1, GRID_SIZE)
-              for i in range(0, SCREEN_WIDTH + 1, GRID_SIZE)]
+GAME_SPACE = [(i, j) for j in range(0, GAME_HEIGHT - GRID_SIZE, GRID_SIZE)
+              for i in range(0, SCREEN_WIDTH - GRID_SIZE, GRID_SIZE)]
 
 UP = (0, -1)
 DOWN = (0, 1)
 LEFT = (-1, 0)
 RIGHT = (1, 0)
 
-BOARD_BACKGROUND_COLOR = (0, 0, 0)
+BOARD_BACKGROUND_COLOR = (38, 125, 63)
 
 BORDER_COLOR = (93, 216, 228)
 
-APPLE_COLOR = (255, 0, 0)
+SNAKE_COLOR = (224, 79, 32)
 
-SNAKE_COLOR = (0, 255, 0)
+APPLE_SPRITE = 'Apple.png'
 
 SPEED = 20
 
@@ -66,9 +66,10 @@ def get_free_positions(snake_positions) -> list:
 class GameObject:
     """The base class from which other game objects inherit."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Initialize an object."""
         self.body_color = None
+        self.sprite = None
         self.position = ((SCREEN_WIDTH // 2), (GAME_HEIGHT // 2))
 
     def draw(self):
@@ -83,12 +84,16 @@ class Apple(GameObject):
 
     def __init__(self):
         """Initialize an apple."""
-        self.body_color = APPLE_COLOR
+        self.sprite = pygame.image.load(f'{GRAPHICS_DIR}Apple.png')
         self.randomize_position()
 
     def randomize_position(self, snake_positions=None):
         """Set a random position of the apple on the playing field."""
         self.position = choice(get_free_positions(snake_positions))
+
+    def draw(self):
+        """Draw an apple."""
+        screen.blit(self.sprite, self.position)
 
 
 class Snake(GameObject):
@@ -100,8 +105,8 @@ class Snake(GameObject):
         self.reset()
 
     def draw(self):
-        """Draws the snake."""
-        # Draws snake head
+        """Draw the snake."""
+        # Drawing snake head
         head_rect = pygame.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE))
         pygame.draw.rect(screen, self.body_color, head_rect)
         pygame.draw.rect(screen, BORDER_COLOR, head_rect, 1)
