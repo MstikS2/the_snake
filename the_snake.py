@@ -5,8 +5,8 @@ import pygame
 
 GRAPHICS_DIR = 'graphics/'
 
-SCREEN_WIDTH, SCREEN_HEIGHT = 640, 500
-GRID_SIZE = 20
+SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 1000
+GRID_SIZE = 40
 GAME_HEIGHT = SCREEN_HEIGHT - GRID_SIZE
 GAME_SPACE = [(i, j) for j in range(0, GAME_HEIGHT - GRID_SIZE, GRID_SIZE)
               for i in range(0, SCREEN_WIDTH - GRID_SIZE, GRID_SIZE)]
@@ -133,9 +133,9 @@ class Snake(GameObject):
         """
         x_head_position, y_head_position = self.get_head_position
         new_x_head_position = (x_head_position
-                               + self.direction[0] * 20) % SCREEN_WIDTH
+                               + self.direction[0] * GRID_SIZE) % SCREEN_WIDTH
         new_y_head_position = (y_head_position
-                               + self.direction[1] * 20) % GAME_HEIGHT
+                               + self.direction[1] * GRID_SIZE) % GAME_HEIGHT
         self.positions.insert(0, (new_x_head_position, new_y_head_position))
         # When the apple is eaten:
         if self.length == len(self.positions):
@@ -182,7 +182,7 @@ def main():
     """Maintain the game."""
     # Initializing PyGame:
     pygame.init()
-    font = pygame.font.SysFont('Comic Sams MS', 30)
+    font = pygame.font.SysFont('Comic Sams MS', 60)
     apple = Apple()
     snake = Snake()
     # Block for displaying the score:
@@ -206,7 +206,7 @@ def main():
         # Score update:
         score = font.render(f'Score: {snake.length}', False, (0, 0, 0))
         pygame.draw.rect(screen, (230, 230, 230), score_background)
-        screen.blit(score, (SCREEN_WIDTH / 2 - 50, GAME_HEIGHT))
+        screen.blit(score, (SCREEN_WIDTH / 2 - 90, GAME_HEIGHT))
         pygame.display.update()
 
 
