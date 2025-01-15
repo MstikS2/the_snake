@@ -18,13 +18,13 @@ RIGHT = (1, 0)
 
 BOARD_BACKGROUND_COLOR = (58, 145, 83)
 
-BORDER_COLOR = (93, 216, 228)
+BORDER_COLOR = (0, 0, 0)
 
 SNAKE_COLOR = (224, 79, 32)
 
 APPLE_SPRITE = 'Apple.png'
 
-SPEED = 20
+SPEED = 24
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 icon = pygame.image.load(f'{GRAPHICS_DIR}SNAKE.ico')
@@ -190,8 +190,8 @@ def main():
                                    (SCREEN_WIDTH, SCREEN_HEIGHT))
 
     while True:
-        handle_keys(snake)
         clock.tick(SPEED)
+        handle_keys(snake)
         snake.move(apple)
         # Checking if snake ate the apple:
         if snake.get_head_position == apple.position:
