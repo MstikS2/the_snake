@@ -182,7 +182,7 @@ def main():
     """Maintain the game."""
     # Initializing PyGame:
     pygame.init()
-    font = pygame.font.SysFont('Comic Sams MS', 60)
+    font = pygame.font.SysFont('graphics/fonts/agat-8.ttf', 48)
     apple = Apple()
     snake = Snake()
     # Block for displaying the score:
@@ -204,9 +204,9 @@ def main():
         apple.draw()
         snake.draw()
         # Score update:
-        score = font.render(f'Score: {snake.length}', False, (0, 0, 0))
+        score = font.render(f'Score: {snake.length}', False, (10, 10, 10))
         pygame.draw.rect(screen, (230, 230, 230), score_background)
-        screen.blit(score, (SCREEN_WIDTH / 2 - 90, GAME_HEIGHT))
+        screen.blit(score, (SCREEN_WIDTH / 2 - 80, GAME_HEIGHT + 3))
         pygame.display.update()
 
 
