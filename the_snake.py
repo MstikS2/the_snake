@@ -20,6 +20,10 @@ BORDER_COLOR = (0, 0, 0)
 
 SNAKE_COLOR = (224, 79, 32)
 
+SCORE_COLOR = (10, 10, 10)
+
+SCORE_BACKGROUND_COLOR = (230, 230, 230)
+
 SPEED = 24
 
 # Specify graphic giles:
@@ -68,18 +72,37 @@ class GameObject:
     """The base class from which other game objects inherit."""
 
     def __init__(self):
-        """Initialize an object."""
+        """Initialize a game object."""
         self.body_color = None
         self.sprite = None
         self.position = ((SCREEN_WIDTH // 2), (GAME_HEIGHT // 2))
 
     def draw(self):
-        """Prepare a method for drawing an object."""
+        """Draw an object."""
         screen.blit(self.sprite, self.position)
 
 
+class TextObject:
+    """The base class from which other text objects inherit."""
+
+    def __init__(self):
+        """Initialize a text object."""
+        self.font = None
+        self.color = None
+        self.background_color = None
+        self.background_position = None
+        self.text_position = None
+
+    def draw(self):
+        """Draw the text."""
+        text_inscript = self.font.render(self.__str__(), False, self.color)
+        pygame.draw.rect(screen, self.background_color,
+                         self.background_position)
+        screen.blit(text_inscript, self.text_position)
+
+
 class Apple(GameObject):
-    """A class describing an apple and actions with it."""
+    """The class describing an apple and actions with it."""
 
     def __init__(self):
         """Initialize an apple."""
@@ -91,16 +114,19 @@ class Apple(GameObject):
         self.position = choice(get_free_positions(snake_positions))
 
 
-class Score(GameObject):
-    """A class describing the score."""
+class Score(TextObject):
+    """The class describing the score."""
 
     def __init__(self, snake_length):
         """Initialize the score."""
-        self.background = pygame.Rect((0, GAME_HEIGHT),
-                                      (SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.background_position = pygame.Rect((0, GAME_HEIGHT),
+                                               (SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.background_color = SCORE_BACKGROUND_COLOR
+        self.color = SCORE_COLOR
         self._update(snake_length)
         self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{SCORE_FONT}',
                                      GRID_SIZE - 4)
+        self.text_position = (SCREEN_WIDTH / 2 - 80, GAME_HEIGHT + 4)
 
     def __str__(self):
         """Generate the score string."""
@@ -113,13 +139,11 @@ class Score(GameObject):
     def draw(self, snake_length):
         """Draw the score."""
         self._update(snake_length)
-        score_inscript = self.font.render(self.__str__(), False, (10, 10, 10))
-        pygame.draw.rect(screen, (230, 230, 230), self.background)
-        screen.blit(score_inscript, (SCREEN_WIDTH / 2 - 80, GAME_HEIGHT + 4))
+        super().draw()
 
 
 class Snake(GameObject):
-    """A class describing a snake and its behavior."""
+    """The class describing a snake and its behavior."""
 
     def __init__(self):
         """Initialize a snake."""
