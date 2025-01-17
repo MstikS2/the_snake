@@ -3,8 +3,6 @@ from random import choice
 
 import pygame
 
-GRAPHICS_DIR = 'graphics/'
-
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 1000
 GRID_SIZE = 40
 GAME_HEIGHT = SCREEN_HEIGHT - GRID_SIZE
@@ -22,9 +20,12 @@ BORDER_COLOR = (0, 0, 0)
 
 SNAKE_COLOR = (224, 79, 32)
 
-APPLE_SPRITE = 'Apple.png'
-
 SPEED = 24
+
+# Specify graphic giles:
+GRAPHICS_DIR = 'graphics/'
+APPLE_SPRITE = 'Apple.png'
+SCORE_FONT = 'agat-8.ttf'
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 icon = pygame.image.load(f'{GRAPHICS_DIR}SNAKE.ico')
@@ -74,9 +75,7 @@ class GameObject:
 
     def draw(self):
         """Prepare a method for drawing an object."""
-        rect = (pygame.Rect(self.position, (GRID_SIZE, GRID_SIZE)))
-        pygame.draw.rect(screen, self.body_color, rect)
-        pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
+        screen.blit(self.sprite, self.position)
 
 
 class Apple(GameObject):
@@ -91,9 +90,32 @@ class Apple(GameObject):
         """Set a random position of the apple on the playing field."""
         self.position = choice(get_free_positions(snake_positions))
 
-    def draw(self):
-        """Draw an apple."""
-        screen.blit(self.sprite, self.position)
+
+class Score(GameObject):
+    """A class describing the score."""
+
+    def __init__(self, snake_length):
+        """Initialize the score."""
+        self.background = pygame.Rect((0, GAME_HEIGHT),
+                                      (SCREEN_WIDTH, SCREEN_HEIGHT))
+        self._update(snake_length)
+        self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{SCORE_FONT}',
+                                     GRID_SIZE - 4)
+
+    def __str__(self):
+        """Generate the score string."""
+        return f'Score: {self.score}'
+
+    def _update(self, snake_length):
+        """Update the score."""
+        self.score = snake_length
+
+    def draw(self, snake_length):
+        """Draw the score."""
+        self._update(snake_length)
+        score_inscript = self.font.render(self.__str__(), False, (10, 10, 10))
+        pygame.draw.rect(screen, (230, 230, 230), self.background)
+        screen.blit(score_inscript, (SCREEN_WIDTH / 2 - 80, GAME_HEIGHT + 4))
 
 
 class Snake(GameObject):
@@ -182,12 +204,9 @@ def main():
     """Maintain the game."""
     # Initializing PyGame:
     pygame.init()
-    font = pygame.font.SysFont('graphics/fonts/agat-8.ttf', 48)
     apple = Apple()
     snake = Snake()
-    # Block for displaying the score:
-    score_background = pygame.Rect((0, GAME_HEIGHT),
-                                   (SCREEN_WIDTH, SCREEN_HEIGHT))
+    score = Score(snake.length)
 
     while True:
         clock.tick(SPEED)
@@ -203,10 +222,7 @@ def main():
             snake.reset()
         apple.draw()
         snake.draw()
-        # Score update:
-        score = font.render(f'Score: {snake.length}', False, (10, 10, 10))
-        pygame.draw.rect(screen, (230, 230, 230), score_background)
-        screen.blit(score, (SCREEN_WIDTH / 2 - 80, GAME_HEIGHT + 3))
+        score.draw(snake.length)
         pygame.display.update()
 
 
