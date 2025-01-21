@@ -24,12 +24,15 @@ SCORE_COLOR = (10, 10, 10)
 
 SCORE_BACKGROUND_COLOR = (230, 230, 230)
 
-SPEED = 24
+DIFFICULTY_COLORS = {'easy': (0, 0, 0), 'medium': (0, 0, 0), 'hard': (0, 0, 0)}
+
+DIFFICULTIES = {'easy': 10, 'medium': 20, 'hard': 30}
 
 # Specify graphic giles:
 GRAPHICS_DIR = 'graphics/'
 APPLE_SPRITE = 'Apple.png'
 SCORE_FONT = 'agat-8.ttf'
+DIFFICULTY_FONT = 'Font Over.otf'
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 icon = pygame.image.load(f'{GRAPHICS_DIR}SNAKE.ico')
@@ -68,6 +71,13 @@ def get_free_positions(snake_positions) -> list:
         return GAME_SPACE
 
 
+def fill_background():
+    """Fill the game board with color."""
+    background_rect = pygame.Rect((0, 0), (SCREEN_WIDTH, GAME_HEIGHT))
+    pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR, background_rect)
+
+
+# Base classes:
 class GameObject:
     """The base class from which other game objects inherit."""
 
@@ -88,25 +98,27 @@ class TextObject:
     def __init__(self):
         """Initialize a text object."""
         self.font = None
-        self.color = None
-        self.background_color = None
-        self.background_position = None
+        self.text_color = None
         self.text_position = None
+        self.background_color = None
+        self.background_rect = None
 
     def draw(self):
         """Draw the text."""
-        text_inscript = self.font.render(self.__str__(), False, self.color)
+        text_inscript = self.font.render(self.__str__(), False,
+                                         self.text_color)
         pygame.draw.rect(screen, self.background_color,
-                         self.background_position)
+                         self.background_rect)
         screen.blit(text_inscript, self.text_position)
 
 
+# Game classes:
 class Apple(GameObject):
     """The class describing an apple and actions with it."""
 
     def __init__(self):
         """Initialize an apple."""
-        self.sprite = pygame.image.load(f'{GRAPHICS_DIR}Apple.png')
+        self.sprite = pygame.image.load(f'{GRAPHICS_DIR}{APPLE_SPRITE}')
         self.randomize_position()
 
     def randomize_position(self, snake_positions=None):
@@ -114,19 +126,29 @@ class Apple(GameObject):
         self.position = choice(get_free_positions(snake_positions))
 
 
+class DifficultButtonInscript(TextObject):
+    """The class for inscription on the difficulty buttton in the main menu."""
+
+    def __init__(self, difficulty):
+        """Initialize the difficulty button inscription."""
+        self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{DIFFICULTY_FONT}',
+                                     GRID_SIZE - 4)
+        self.text_color = DIFFICULTY_COLORS[difficulty]
+
+
 class Score(TextObject):
     """The class describing the score."""
 
     def __init__(self, snake_length):
         """Initialize the score."""
-        self.background_position = pygame.Rect((0, GAME_HEIGHT),
-                                               (SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.background_color = SCORE_BACKGROUND_COLOR
-        self.color = SCORE_COLOR
-        self._update(snake_length)
         self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{SCORE_FONT}',
                                      GRID_SIZE - 4)
+        self.text_color = SCORE_COLOR
         self.text_position = (SCREEN_WIDTH / 2 - 80, GAME_HEIGHT + 4)
+        self.background_color = SCORE_BACKGROUND_COLOR
+        self.background_rect = pygame.Rect((0, GAME_HEIGHT),
+                                           (SCREEN_WIDTH, SCREEN_HEIGHT))
+        self._update(snake_length)
 
     def __str__(self):
         """Generate the score string."""
@@ -195,8 +217,7 @@ class Snake(GameObject):
     def reset(self):
         """Reset the snake to its initial state."""
         # Erasing the snake:
-        background_rect = pygame.Rect((0, 0), (SCREEN_WIDTH, GAME_HEIGHT))
-        pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR, background_rect)
+        fill_background()
         # Reseting the snake:
         self.length = 1
         self.positions = [self.position]
@@ -224,16 +245,23 @@ def handle_keys(game_object: Snake):
                 break
 
 
+def handle_main_menu():
+    """Maintain the main menu."""
+    pygame.init()
+    fill_background()
+
+
 def main():
     """Maintain the game."""
-    # Initializing PyGame:
-    pygame.init()
+    # Initializing PyGame and opjects:
+    handle_main_menu()
     apple = Apple()
     snake = Snake()
     score = Score(snake.length)
 
+    # Starting the game:
     while True:
-        clock.tick(SPEED)
+        clock.tick(DIFFICULTIES['medium'])
         handle_keys(snake)
         snake.move(apple)
         # Checking if snake ate the apple:
