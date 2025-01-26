@@ -37,8 +37,11 @@ BACKGROUND_SPRITE = 'Grass.png'
 MAIN_FONT = 'Font Over.otf'
 SCORE_FONT = 'agat-8.ttf'
 
-SCORE_FONT_SIZE = GRID_SIZE - 4
 SCORE_POSITION = (SCREEN_WIDTH / 2, GAME_HEIGHT + GRID_SIZE / 2 + 4)
+
+HIGHTSCORE_FONT_SIZE = GRID_SIZE / 2
+HIGHTSCORE_POSITION = (SCREEN_WIDTH / 2 + 4 * GRID_SIZE,
+                       SCREEN_HEIGHT - GRID_SIZE / 4)
 
 GAME_OVER_FONT_SIZE = SCREEN_WIDTH // 9
 GAME_OVER_POSITION = (SCREEN_WIDTH / 2, GAME_HEIGHT / 2)
@@ -59,7 +62,6 @@ background_cell = pygame.transform.scale(background_cell,
                                          (GRID_SIZE, GRID_SIZE))
 
 clock = pygame.time.Clock()
-
 
 DIRECTION_KEYS = {
     (pygame.K_s, RIGHT): DOWN,
@@ -194,7 +196,7 @@ class Score(TextObject):
     def __init__(self, snake_length):
         """Initialize the score."""
         self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{SCORE_FONT}',
-                                     SCORE_FONT_SIZE)
+                                     GRID_SIZE)
         self.text_color = SCORE_COLOR
         self.text_position = SCORE_POSITION
         self.background_color = SCORE_BACKGROUND_COLOR
