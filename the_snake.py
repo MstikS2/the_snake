@@ -24,6 +24,8 @@ SCORE_COLOR = (10, 10, 10)
 
 SCORE_BACKGROUND_COLOR = (230, 230, 230)
 
+GAME_OVER_COLOR = (190, 32, 32)
+
 DIFFICULTY_COLORS = {'easy': (0, 0, 0), 'medium': (0, 0, 0), 'hard': (0, 0, 0)}
 
 DIFFICULTIES = {'easy': 10, 'medium': 20, 'hard': 30}
@@ -32,8 +34,20 @@ DIFFICULTIES = {'easy': 10, 'medium': 20, 'hard': 30}
 GRAPHICS_DIR = 'graphics/'
 APPLE_SPRITE = 'Apple.png'
 BACKGROUND_SPRITE = 'Grass.png'
-DIFFICULTY_FONT = 'Font Over.otf'
+MAIN_FONT = 'Font Over.otf'
 SCORE_FONT = 'agat-8.ttf'
+
+SCORE_FONT_SIZE = GRID_SIZE - 4
+SCORE_POSITION = (SCREEN_WIDTH / 2, GAME_HEIGHT + GRID_SIZE / 2 + 4)
+
+GAME_OVER_FONT_SIZE = SCREEN_WIDTH // 9
+GAME_OVER_POSITION = (SCREEN_WIDTH / 2, GAME_HEIGHT / 2)
+GAME_OVER_OUTLINE_POS = (
+    (GAME_OVER_POSITION[0] - 4, GAME_OVER_POSITION[1] - 4),
+    (GAME_OVER_POSITION[0] + 4, GAME_OVER_POSITION[1] - 4),
+    (GAME_OVER_POSITION[0] - 4, GAME_OVER_POSITION[1] + 4),
+    (GAME_OVER_POSITION[0] + 4, GAME_OVER_POSITION[1] + 4)
+)
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 icon = pygame.image.load(f'{GRAPHICS_DIR}SNAKE.ico')
@@ -110,11 +124,13 @@ class TextObject:
 
     def draw(self):
         """Draw the text."""
-        text_inscript = self.font.render(self.__str__(), False,
+        text_inscript = self.font.render(self.__str__(), True,
                                          self.text_color)
-        pygame.draw.rect(screen, self.background_color,
-                         self.background_rect)
-        screen.blit(text_inscript, self.text_position)
+        if self.background_color:
+            pygame.draw.rect(screen, self.background_color,
+                             self.background_rect)
+        text_rect = text_inscript.get_rect(center=self.text_position)
+        screen.blit(text_inscript, text_rect)
 
 
 # Game classes:
@@ -138,9 +154,38 @@ class DifficultButtonInscript(TextObject):
 
     def __init__(self, difficulty):
         """Initialize the difficulty button inscription."""
-        self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{DIFFICULTY_FONT}',
+        super().__init__()
+        self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{MAIN_FONT}',
                                      GRID_SIZE - 4)
         self.text_color = DIFFICULTY_COLORS[difficulty]
+
+
+class GameOverInscript(TextObject):
+    """The class descibing the inscript, what apears when the game is over."""
+
+    def __init__(self):
+        """Initialize the game over inscript."""
+        super().__init__()
+        self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{MAIN_FONT}',
+                                     GAME_OVER_FONT_SIZE)
+        self.text_color = GAME_OVER_COLOR
+        self.text_position = GAME_OVER_POSITION
+
+    def __str__(self):
+        """Generate the game over string."""
+        return 'Game over'
+
+    def _draw_outline(self, outline_position):
+        text_inscript = self.font.render(self.__str__(), True, BORDER_COLOR)
+        text_rect = text_inscript.get_rect(center=outline_position)
+        screen.blit(text_inscript, text_rect)
+
+    def draw(self):
+        """Draw the game over."""
+        # Making the outline
+        for position in GAME_OVER_OUTLINE_POS:
+            self._draw_outline(position)
+        super().draw()
 
 
 class Score(TextObject):
@@ -149,9 +194,9 @@ class Score(TextObject):
     def __init__(self, snake_length):
         """Initialize the score."""
         self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{SCORE_FONT}',
-                                     GRID_SIZE - 4)
+                                     SCORE_FONT_SIZE)
         self.text_color = SCORE_COLOR
-        self.text_position = (SCREEN_WIDTH / 2 - 80, GAME_HEIGHT + 4)
+        self.text_position = SCORE_POSITION
         self.background_color = SCORE_BACKGROUND_COLOR
         self.background_rect = pygame.Rect((0, GAME_HEIGHT),
                                            (SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -264,6 +309,7 @@ def main():
     apple = Apple()
     snake = Snake()
     score = Score(snake.length)
+    game_over_inscript = GameOverInscript()
 
     # Starting the game:
     while True:
@@ -276,6 +322,8 @@ def main():
             apple.randomize_position(snake.positions)
         # Checking if the snake has collided with itself:
         elif snake.get_head_position in snake.positions[2:]:
+            game_over_inscript.draw()
+            pygame.display.update()
             clock.tick(0.5)
             snake.reset()
         apple.draw()
