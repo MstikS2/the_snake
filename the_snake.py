@@ -28,13 +28,22 @@ DIFFICULTY_COLORS = {'easy': (0, 0, 0), 'medium': (0, 0, 0), 'hard': (0, 0, 0)}
 
 DIFFICULTIES = {'easy': 10, 'medium': 20, 'hard': 30}
 
+# Set this True if you don't want your results to be saved:
+DEBUG = False
+
+RESULTS_DIR = 'results/'
+
 # Specify graphic giles:
 GRAPHICS_DIR = 'graphics/'
 APPLE_SPRITE = 'Apple.png'
 SCORE_FONT = 'agat-8.ttf'
 DIFFICULTY_FONT = 'Font Over.otf'
 
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
+# Create statistics files if does not exist:
+open(f'{RESULTS_DIR}hightscore.txt', 'a').close()
+open(f'{RESULTS_DIR}averangescore.txt', 'a').close()
+
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 100)
 icon = pygame.image.load(f'{GRAPHICS_DIR}SNAKE.ico')
 pygame.display.set_icon(icon)
 
@@ -229,11 +238,14 @@ class Snake(GameObject):
         self.direction = new_direction
 
 
-def handle_keys(game_object: Snake):
+def handle_keys(game_object: Snake, results: dict):
     """Process user actions."""
+    snake_length = game_object.length
     for event in pygame.event.get():
         if (event.type == pygame.QUIT
            or event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+            if not DEBUG and snake_length > 1:
+                save_results(snake_length, results)
             pygame.quit()
             raise SystemExit
         elif event.type == pygame.KEYDOWN:
@@ -251,6 +263,44 @@ def handle_main_menu():
     fill_background()
 
 
+def get_results() -> dict:
+    """Get result from specific files."""
+    with open(f'{RESULTS_DIR}hightscore.txt', 'r', encoding="utf-8") as file:
+        try:
+            hightscore = int(file.readline())
+        except ValueError:
+            hightscore = 0
+
+    with open(f'{RESULTS_DIR}averangescore.txt',
+              'r', encoding="utf-8") as file:
+        try:
+            averange_score = int(file.readline())
+            games_played = int(file.readline())
+        except ValueError:
+            averange_score = 0
+            games_played = 0
+    results = {
+        'hightscore': hightscore,
+        'averange_score': averange_score,
+        'games_played': games_played
+    }
+    return results
+
+
+def save_results(snake_length: int, results: dict):
+    """Save game results."""
+    results['games_played'] += 1
+    games_played = results['games_played']
+    results['averange_score'] = ((results['averange_score'] *
+                                  (games_played - 1) + snake_length) /
+                                 games_played)
+    with open(f'{RESULTS_DIR}hightscore.txt', 'w', encoding="utf-8") as file:
+        file.write(str(results['hightscore']))
+    with open(f'{RESULTS_DIR}averangescore.txt',
+              'w', encoding="utf-8") as file:
+        file.write(f'{results["averange_score"]}\n{games_played}')
+
+
 def main():
     """Maintain the game."""
     # Initializing PyGame and opjects:
@@ -258,18 +308,23 @@ def main():
     apple = Apple()
     snake = Snake()
     score = Score(snake.length)
+    results = get_results()
 
     # Starting the game:
     while True:
         clock.tick(DIFFICULTIES['medium'])
-        handle_keys(snake)
+        handle_keys(snake, results)
         snake.move(apple)
         # Checking if snake ate the apple:
         if snake.get_head_position == apple.position:
             snake.length += 1
             apple.randomize_position(snake.positions)
+            if snake.length > results['hightscore']:
+                results['hightscore'] = snake.length
         # Checking if the snake has collided with itself:
         elif snake.get_head_position in snake.positions[2:]:
+            if not DEBUG:
+                save_results(snake.length, results)
             clock.tick(0.5)
             snake.reset()
         apple.draw()
