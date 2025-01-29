@@ -30,10 +30,10 @@ DIFFICULTY_COLORS = {'easy': (0, 0, 0), 'medium': (0, 0, 0), 'hard': (0, 0, 0)}
 
 DIFFICULTIES = {'easy': 10, 'medium': 20, 'hard': 30}
 
-# Specify graphic giles:
+# Specify graphic files:
 GRAPHICS_DIR = 'graphics/'
 APPLE_SPRITE = 'Apple.png'
-BACKGROUND_SPRITE = 'Grass.png'
+BACKGROUND_IMAGE = 'Grass.png'
 MAIN_FONT = 'Font Over.otf'
 SCORE_FONT = 'agat-8.ttf'
 
@@ -56,10 +56,6 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 icon = pygame.image.load(f'{GRAPHICS_DIR}SNAKE.ico')
 pygame.display.set_icon(icon)
 pygame.display.set_caption('Snake')
-
-background_cell = pygame.image.load(f'{GRAPHICS_DIR}{BACKGROUND_SPRITE}')
-background_cell = pygame.transform.scale(background_cell,
-                                         (GRID_SIZE, GRID_SIZE))
 
 clock = pygame.time.Clock()
 
@@ -91,11 +87,16 @@ def get_free_positions(snake_positions) -> list:
         return GAME_SPACE
 
 
+def load_image(image_file, size) -> pygame.surface.Surface:
+    """Load image and transform it, return pygame image surface."""
+    img = pygame.image.load(f'{GRAPHICS_DIR}{image_file}')
+    return pygame.transform.scale(img, size)
+
+
 def fill_background():
-    """Fill the game board with color."""
-    for i in range(0, SCREEN_WIDTH, GRID_SIZE):
-        for j in range(0, GAME_HEIGHT, GRID_SIZE):
-            screen.blit(background_cell, (i, j))
+    """Fill the game board with background image."""
+    screen.blit(load_image(BACKGROUND_IMAGE, (SCREEN_WIDTH, GAME_HEIGHT)),
+                (0, 0))
 
 
 # Base classes:
@@ -141,9 +142,7 @@ class Apple(GameObject):
 
     def __init__(self):
         """Initialize an apple."""
-        self.sprite = pygame.image.load(f'{GRAPHICS_DIR}{APPLE_SPRITE}')
-        self.sprite = pygame.transform.scale(self.sprite, (GRID_SIZE,
-                                                           GRID_SIZE))
+        self.sprite = load_image(APPLE_SPRITE, (GRID_SIZE, GRID_SIZE))
         self.randomize_position()
 
     def randomize_position(self, snake_positions=None):
@@ -239,6 +238,10 @@ class Snake(GameObject):
         # In this case, without checking, the cell with its head is painted
         # Over and in the future remains a hole in the snake in this place
         if self.last and self.last != self.get_head_position:
+            background = load_image(BACKGROUND_IMAGE,
+                                    (SCREEN_WIDTH, GAME_HEIGHT))
+            last_rect = pygame.Rect(self.last, (GRID_SIZE, GRID_SIZE))
+            background_cell = background.subsurface(last_rect)
             screen.blit(background_cell, self.last)
 
     @property
