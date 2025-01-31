@@ -14,8 +14,6 @@ DOWN = (0, 1)
 LEFT = (-1, 0)
 RIGHT = (1, 0)
 
-BOARD_BACKGROUND_COLOR = (58, 145, 83)
-
 BORDER_COLOR = (0, 0, 0)
 
 SNAKE_COLOR = (224, 79, 32)
@@ -36,6 +34,14 @@ APPLE_SPRITE = 'Apple.png'
 BACKGROUND_IMAGE = 'Grass.png'
 MAIN_FONT = 'Font Over.otf'
 SCORE_FONT = 'agat-8.ttf'
+SNAKE_SPRITES_DIR = 'Snake/'
+SNAKE_HEAD = 'Snake_head.png'
+SNAKE_BODY = 'Snake_body.png'
+SNAKE_TAIL = 'Snake_tail.png'
+SNAKE_TURNING_DOWNLEFT = 'Snake_turning_downleft.png'
+SNAKE_TURNING_DOWNRIGHT = 'Snake_turning_downright.png'
+SNAKE_TURNING_LEFTUP = 'Snake_turning_leftup.png'
+SNAKE_TURNING_UPRIGHT = 'Snake_turning_upright.png'
 
 SCORE_POSITION = (SCREEN_WIDTH / 2, GAME_HEIGHT + GRID_SIZE / 2 + 4)
 
@@ -78,8 +84,13 @@ DIRECTION_KEYS = {
     (pygame.K_RIGHT, DOWN): RIGHT
 }
 
+# This dict contains rotate angles for snake parts
+# Depending on current derection
+# Considering sprites are directed upward by default
+DIRECTION_ROTATE = {UP: 0, LEFT: 90, RIGHT: -90, DOWN: 180}
 
-def get_free_positions(snake_positions) -> list:
+
+def get_free_positions(snake_positions: list) -> list:
     """Return list of free cells on the game board."""
     if snake_positions:
         return list(set(GAME_SPACE) - set(snake_positions))
@@ -87,9 +98,10 @@ def get_free_positions(snake_positions) -> list:
         return GAME_SPACE
 
 
-def load_image(image_file, size) -> pygame.surface.Surface:
+def load_image(image_file: str,
+               size=(GRID_SIZE, GRID_SIZE)) -> pygame.surface.Surface:
     """Load image and transform it, return pygame image surface."""
-    img = pygame.image.load(f'{GRAPHICS_DIR}{image_file}')
+    img = pygame.image.load(GRAPHICS_DIR + image_file)
     return pygame.transform.scale(img, size)
 
 
@@ -142,7 +154,7 @@ class Apple(GameObject):
 
     def __init__(self):
         """Initialize an apple."""
-        self.sprite = load_image(APPLE_SPRITE, (GRID_SIZE, GRID_SIZE))
+        self.sprite = load_image(APPLE_SPRITE)
         self.randomize_position()
 
     def randomize_position(self, snake_positions=None):
@@ -219,6 +231,28 @@ class Score(TextObject):
 
 class Snake(GameObject):
     """The class describing a snake and its behavior."""
+
+    # This dict contains correct body turning sprites for every turning case
+    # (Load an image and flip + rotate if needed)
+    snake_turning_bodies = {
+        (DOWN, RIGHT): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_DOWNRIGHT),
+        (DOWN, LEFT): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_DOWNLEFT),
+        (LEFT, DOWN): pygame.transform.rotate(pygame.transform.flip(
+            load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_UPRIGHT), False, True
+        ), -90),
+        (LEFT, UP): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_LEFTUP),
+        (UP, LEFT): pygame.transform.rotate(pygame.transform.flip(
+            load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_LEFTUP), True, False
+        ), 90),
+        (UP, RIGHT): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_UPRIGHT),
+        (RIGHT, UP): pygame.transform.rotate(pygame.transform.flip(
+            load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_DOWNLEFT), False, True
+        ), -90),
+        (RIGHT, DOWN): pygame.transform.rotate(pygame.transform.flip(
+            load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_DOWNRIGHT),
+            True, False
+        ), 90),
+    }
 
     def __init__(self):
         """Initialize a snake."""
