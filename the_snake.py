@@ -236,6 +236,7 @@ class Snake(GameObject):
         """Initialize a snake."""
         super().__init__()
         self.reset()
+        # Loading snake sprites and rotating them:
         self.head_sprite = load_image(SNAKE_SPRITES_DIR + SNAKE_HEAD_SPRITE)
         self.head_sprite_rotated = self._rotate_sprite(self.head_sprite)
         self.body_sprite = load_image(SNAKE_SPRITES_DIR + SNAKE_BODY_SPRITE)
@@ -244,26 +245,29 @@ class Snake(GameObject):
         self.tail_sprite_rotated = self._rotate_sprite(self.tail_sprite)
         # This dict contains correct body turning sprites for every turning
         # (Load an image and flip + rotate if needed)
+        # !!! DO NOT CONFUSE THE DIRECTION IN THIS DICT
+        # AND THE ANGLE IN THE FILE NAME !!!
         self.turning_bodies = {
-            (DOWN, RIGHT): load_image(SNAKE_SPRITES_DIR +
-                                      SNAKE_TURNING_DOWNRIGHT),
-            (DOWN, LEFT): load_image(SNAKE_SPRITES_DIR +
-                                     SNAKE_TURNING_DOWNLEFT),
-            (LEFT, DOWN): pygame.transform.rotate(pygame.transform.flip(
+            (UP, RIGHT): load_image(SNAKE_SPRITES_DIR +
+                                    SNAKE_TURNING_DOWNRIGHT),
+            (UP, LEFT): load_image(SNAKE_SPRITES_DIR +
+                                   SNAKE_TURNING_DOWNLEFT),
+            (RIGHT, DOWN): pygame.transform.rotate(pygame.transform.flip(
                 load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_UPRIGHT),
                 False, True
             ), -90),
-            (LEFT, UP): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_LEFTUP),
-            (UP, LEFT): pygame.transform.rotate(pygame.transform.flip(
+            (RIGHT, UP): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_LEFTUP),
+            (DOWN, LEFT): pygame.transform.rotate(pygame.transform.flip(
                 load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_LEFTUP),
                 True, False
             ), 90),
-            (UP, RIGHT): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_UPRIGHT),
-            (RIGHT, UP): pygame.transform.rotate(pygame.transform.flip(
+            (DOWN, RIGHT): load_image(SNAKE_SPRITES_DIR +
+                                      SNAKE_TURNING_UPRIGHT),
+            (LEFT, UP): pygame.transform.rotate(pygame.transform.flip(
                 load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_DOWNLEFT),
                 False, True
             ), -90),
-            (RIGHT, DOWN): pygame.transform.rotate(pygame.transform.flip(
+            (LEFT, DOWN): pygame.transform.rotate(pygame.transform.flip(
                 load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_DOWNRIGHT),
                 True, False
             ), 90),
@@ -272,20 +276,33 @@ class Snake(GameObject):
     def draw(self):
         """Draw the snake."""
         # Drawing body sprite instead of head and the tail:
-        if self.length > 1:
+        if self.length > 2:
+            # Drawing the neck:
             self._erase_sprite(self.prev_head_pos)
-            screen.blit(self.body_sprite_rotated[self.direction],
-                        self.prev_head_pos)
-            self._erase_sprite(self.positions[-1])
-            screen.blit(self.tail_sprite_rotated[
-                self.directions_stack[0] if self.directions_stack
-                else self.direction
-            ], self.positions[-1])
+            if self.rotated:
+                screen.blit(self.turning_bodies[(self.directions_stack[-1],
+                                                 self.direction)],
+                            self.prev_head_pos)
+            else:
+                screen.blit(self.body_sprite_rotated[self.direction],
+                            self.prev_head_pos)
+        # Drawing the tail:
+        self._erase_sprite(self.positions[-1])
+        screen.blit(self.tail_sprite_rotated[
+            self.directions_stack[0] if self.directions_stack
+            else self.direction
+        ], self.positions[-1])
         # Erasing the head cell in case apple has been eaten:
         head_position = self.get_head_position
         self._erase_sprite(head_position)
         # Drawing snake head
         screen.blit(self.head_sprite_rotated[self.direction], head_position)
+        # Reseting the rotate flag:
+        self.rotated = False
+        # Deleting point from rotate history if snake body passed it:
+        if self.rotate_points and self.positions[-1] == self.rotate_points[0]:
+            del self.rotate_points[0]
+            del self.directions_stack[0]
 
         # Erasing the last element
         # Checking the coincidence of the head and tail is needed for cases
@@ -312,10 +329,6 @@ class Snake(GameObject):
         new_y_head_position = (self.prev_head_pos[1]
                                + self.direction[1] * GRID_SIZE) % GAME_HEIGHT
         self.positions.insert(0, (new_x_head_position, new_y_head_position))
-        # Deleting point from rotate history if snake body passed it:
-        if self.rotate_points and self.positions[-1] == self.rotate_points[0]:
-            del self.rotate_points[0]
-            del self.directions_stack[0]
         # When the apple is eaten:
         if self.length == len(self.positions):
             self.last = None
@@ -345,7 +358,7 @@ class Snake(GameObject):
         # Erasing the snake:
         fill_background()
         # Reseting the snake:
-        self.length = 1
+        self.length = 2
         self.positions = [self.position]
         self.direction = RIGHT
         self.rotated = False
