@@ -16,8 +16,6 @@ RIGHT = (1, 0)
 
 BORDER_COLOR = (0, 0, 0)
 
-SNAKE_COLOR = (224, 79, 32)
-
 SCORE_COLOR = (10, 10, 10)
 
 SCORE_BACKGROUND_COLOR = (230, 230, 230)
@@ -35,9 +33,9 @@ BACKGROUND_IMAGE = 'Grass.png'
 MAIN_FONT = 'Font Over.otf'
 SCORE_FONT = 'agat-8.ttf'
 SNAKE_SPRITES_DIR = 'Snake/'
-SNAKE_HEAD = 'Snake_head.png'
-SNAKE_BODY = 'Snake_body.png'
-SNAKE_TAIL = 'Snake_tail.png'
+SNAKE_HEAD_SPRITE = 'Snake_head.png'
+SNAKE_BODY_SPRITE = 'Snake_body.png'
+SNAKE_TAIL_SPRITE = 'Snake_tail.png'
 SNAKE_TURNING_DOWNLEFT = 'Snake_turning_downleft.png'
 SNAKE_TURNING_DOWNRIGHT = 'Snake_turning_downright.png'
 SNAKE_TURNING_LEFTUP = 'Snake_turning_leftup.png'
@@ -84,11 +82,6 @@ DIRECTION_KEYS = {
     (pygame.K_RIGHT, DOWN): RIGHT
 }
 
-# This dict contains rotate angles for snake parts
-# Depending on current derection
-# Considering sprites are directed upward by default
-DIRECTION_ROTATE = {UP: 0, LEFT: 90, RIGHT: -90, DOWN: 180}
-
 
 def get_free_positions(snake_positions: list) -> list:
     """Return list of free cells on the game board."""
@@ -117,13 +110,20 @@ class GameObject:
 
     def __init__(self):
         """Initialize a game object."""
-        self.body_color = None
         self.sprite = None
         self.position = ((SCREEN_WIDTH // 2), (GAME_HEIGHT // 2))
 
     def draw(self):
         """Draw an object."""
         screen.blit(self.sprite, self.position)
+
+    def _erase_sprite(self, position):
+        """Erase the sprite and restore the background cell."""
+        background = load_image(BACKGROUND_IMAGE,
+                                (SCREEN_WIDTH, GAME_HEIGHT))
+        erasing_rect = pygame.Rect(position, (GRID_SIZE, GRID_SIZE))
+        background_cell = background.subsurface(erasing_rect)
+        screen.blit(background_cell, position)
 
 
 class TextObject:
@@ -232,69 +232,90 @@ class Score(TextObject):
 class Snake(GameObject):
     """The class describing a snake and its behavior."""
 
-    # This dict contains correct body turning sprites for every turning case
-    # (Load an image and flip + rotate if needed)
-    snake_turning_bodies = {
-        (DOWN, RIGHT): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_DOWNRIGHT),
-        (DOWN, LEFT): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_DOWNLEFT),
-        (LEFT, DOWN): pygame.transform.rotate(pygame.transform.flip(
-            load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_UPRIGHT), False, True
-        ), -90),
-        (LEFT, UP): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_LEFTUP),
-        (UP, LEFT): pygame.transform.rotate(pygame.transform.flip(
-            load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_LEFTUP), True, False
-        ), 90),
-        (UP, RIGHT): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_UPRIGHT),
-        (RIGHT, UP): pygame.transform.rotate(pygame.transform.flip(
-            load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_DOWNLEFT), False, True
-        ), -90),
-        (RIGHT, DOWN): pygame.transform.rotate(pygame.transform.flip(
-            load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_DOWNRIGHT),
-            True, False
-        ), 90),
-    }
-
     def __init__(self):
         """Initialize a snake."""
         super().__init__()
         self.reset()
+        self.head_sprite = load_image(SNAKE_SPRITES_DIR + SNAKE_HEAD_SPRITE)
+        self.head_sprite_rotated = self._rotate_sprite(self.head_sprite)
+        self.body_sprite = load_image(SNAKE_SPRITES_DIR + SNAKE_BODY_SPRITE)
+        self.body_sprite_rotated = self._rotate_sprite(self.body_sprite)
+        self.tail_sprite = load_image(SNAKE_SPRITES_DIR + SNAKE_TAIL_SPRITE)
+        self.tail_sprite_rotated = self._rotate_sprite(self.tail_sprite)
+        # This dict contains correct body turning sprites for every turning
+        # (Load an image and flip + rotate if needed)
+        self.turning_bodies = {
+            (DOWN, RIGHT): load_image(SNAKE_SPRITES_DIR +
+                                      SNAKE_TURNING_DOWNRIGHT),
+            (DOWN, LEFT): load_image(SNAKE_SPRITES_DIR +
+                                     SNAKE_TURNING_DOWNLEFT),
+            (LEFT, DOWN): pygame.transform.rotate(pygame.transform.flip(
+                load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_UPRIGHT),
+                False, True
+            ), -90),
+            (LEFT, UP): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_LEFTUP),
+            (UP, LEFT): pygame.transform.rotate(pygame.transform.flip(
+                load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_LEFTUP),
+                True, False
+            ), 90),
+            (UP, RIGHT): load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_UPRIGHT),
+            (RIGHT, UP): pygame.transform.rotate(pygame.transform.flip(
+                load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_DOWNLEFT),
+                False, True
+            ), -90),
+            (RIGHT, DOWN): pygame.transform.rotate(pygame.transform.flip(
+                load_image(SNAKE_SPRITES_DIR + SNAKE_TURNING_DOWNRIGHT),
+                True, False
+            ), 90),
+        }
 
     def draw(self):
         """Draw the snake."""
+        # Drawing body sprite instead of head and the tail:
+        if self.length > 1:
+            self._erase_sprite(self.prev_head_pos)
+            screen.blit(self.body_sprite_rotated[self.direction],
+                        self.prev_head_pos)
+            self._erase_sprite(self.positions[-1])
+            screen.blit(self.tail_sprite_rotated[
+                self.directions_stack[0] if self.directions_stack
+                else self.direction
+            ], self.positions[-1])
+        # Erasing the head cell in case apple has been eaten:
+        head_position = self.get_head_position
+        self._erase_sprite(head_position)
         # Drawing snake head
-        head_rect = pygame.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE))
-        pygame.draw.rect(screen, self.body_color, head_rect)
-        pygame.draw.rect(screen, BORDER_COLOR, head_rect, 1)
+        screen.blit(self.head_sprite_rotated[self.direction], head_position)
 
         # Erasing the last element
         # Checking the coincidence of the head and tail is needed for cases
         # When the head crawls onto the cell where the tail just was.
         # In this case, without checking, the cell with its head is painted
         # Over and in the future remains a hole in the snake in this place
-        if self.last and self.last != self.get_head_position:
-            background = load_image(BACKGROUND_IMAGE,
-                                    (SCREEN_WIDTH, GAME_HEIGHT))
-            last_rect = pygame.Rect(self.last, (GRID_SIZE, GRID_SIZE))
-            background_cell = background.subsurface(last_rect)
-            screen.blit(background_cell, self.last)
+        if self.last and self.last != head_position:
+            self._erase_sprite(self.last)
 
     @property
     def get_head_position(self) -> tuple:
         """Returns snake head position."""
         return self.positions[0]
 
-    def move(self, apple):
+    def move(self):
         """Update the position of the snake.
 
         Add a new head to the beginning of the list
         and remove the last element - the tail.
         """
-        x_head_position, y_head_position = self.get_head_position
-        new_x_head_position = (x_head_position
+        self.prev_head_pos = self.get_head_position
+        new_x_head_position = (self.prev_head_pos[0]
                                + self.direction[0] * GRID_SIZE) % SCREEN_WIDTH
-        new_y_head_position = (y_head_position
+        new_y_head_position = (self.prev_head_pos[1]
                                + self.direction[1] * GRID_SIZE) % GAME_HEIGHT
         self.positions.insert(0, (new_x_head_position, new_y_head_position))
+        # Deleting point from rotate history if snake body passed it:
+        if self.rotate_points and self.positions[-1] == self.rotate_points[0]:
+            del self.rotate_points[0]
+            del self.directions_stack[0]
         # When the apple is eaten:
         if self.length == len(self.positions):
             self.last = None
@@ -303,6 +324,21 @@ class Snake(GameObject):
             # Removing a segment from the snake
             # And save the coordinates for shading in draw():
             self.last = self.positions.pop()
+        if self.rotate_points and self.positions[-1] == self.rotate_points[0]:
+            del self.rotate_points[0]
+            del self.directions_stack[0]
+
+    def _rotate_sprite(self, sprite: pygame.surface.Surface) -> dict:
+        """Return dict with correctly rotated sprite for every direction."""
+        sprites = {
+            UP: sprite,
+            LEFT: pygame.transform.flip(
+                pygame.transform.rotate(sprite, 90), False, True
+            ),
+            RIGHT: pygame.transform.rotate(sprite, -90),
+            DOWN: pygame.transform.flip(sprite, False, True)
+        }
+        return sprites
 
     def reset(self):
         """Reset the snake to its initial state."""
@@ -312,7 +348,11 @@ class Snake(GameObject):
         self.length = 1
         self.positions = [self.position]
         self.direction = RIGHT
-        self.body_color = SNAKE_COLOR
+        self.rotated = False
+        # We will append direction change history here
+        # For correct tail rendering:
+        self.directions_stack = []
+        self.rotate_points = []
 
     def update_direction(self, new_direction):
         """Update the direction after pressing the button."""
@@ -329,9 +369,12 @@ def handle_keys(game_object: Snake):
         elif event.type == pygame.KEYDOWN:
             cur_key_direction = (event.key, game_object.direction)
             if cur_key_direction in DIRECTION_KEYS:
+                game_object.rotated = True
+                game_object.directions_stack.append(game_object.direction)
+                game_object.rotate_points.append(game_object.get_head_position)
                 game_object.update_direction(DIRECTION_KEYS[cur_key_direction])
                 # Preventing changing the direction more than 1 time
-                # Per iteration
+                # Per iteration:
                 break
 
 
@@ -354,7 +397,7 @@ def main():
     while True:
         clock.tick(DIFFICULTIES['medium'])
         handle_keys(snake)
-        snake.move(apple)
+        snake.move()
         # Checking if snake ate the apple:
         if snake.get_head_position == apple.position:
             snake.length += 1
