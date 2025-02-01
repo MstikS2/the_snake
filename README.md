@@ -3,7 +3,8 @@
 
 **The game everyone knows.**
 
-Just open Snake.exe and play!
+Just open Snake.exe and play!\
+**Executable file must be in the same directory as `graphics/` and `results/`!**
 
 Developed using Python 3.9.13 and PyGame library.
 

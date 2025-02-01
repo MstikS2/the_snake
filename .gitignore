@@ -49,5 +49,6 @@ venv.bak/
 dmypy.json
 
 # statistics files
-averangescore.txt
-hightscore.txt
+easy.txt
+medium.txt
+hard.txt

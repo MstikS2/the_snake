@@ -26,6 +26,8 @@ DIFFICULTY_COLORS = {'easy': (0, 0, 0), 'medium': (0, 0, 0), 'hard': (0, 0, 0)}
 
 DIFFICULTIES = {'easy': 10, 'medium': 20, 'hard': 30}
 
+SNAKE_DEF_LENGTH = 2
+
 # Set this True if you don't want your results to be saved:
 DEBUG = False
 
@@ -48,9 +50,7 @@ SNAKE_TURNING_UPRIGHT = 'Snake_turning_upright.png'
 
 SCORE_POSITION = (SCREEN_WIDTH / 2, GAME_HEIGHT + GRID_SIZE / 2 + 4)
 
-HIGHTSCORE_FONT_SIZE = GRID_SIZE / 2
-HIGHTSCORE_POSITION = (SCREEN_WIDTH / 2 + 4 * GRID_SIZE,
-                       SCREEN_HEIGHT - GRID_SIZE / 4)
+HIGHTSCORE_POSITION = (2 * GRID_SIZE, GAME_HEIGHT + GRID_SIZE / 2 + 4)
 
 GAME_OVER_FONT_SIZE = SCREEN_WIDTH // 9
 GAME_OVER_POSITION = (SCREEN_WIDTH / 2, GAME_HEIGHT / 2)
@@ -62,8 +62,10 @@ GAME_OVER_OUTLINE_POS = (
 )
 
 # Create statistics files if does not exist:
-open(f'{RESULTS_DIR}hightscore.txt', 'a').close()
-open(f'{RESULTS_DIR}averangescore.txt', 'a').close()
+open(f'{RESULTS_DIR}easy.txt', 'a').close()
+open(f'{RESULTS_DIR}medium.txt', 'a').close()
+open(f'{RESULTS_DIR}hard.txt', 'a').close()
+
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 100)
 icon = pygame.image.load(f'{GRAPHICS_DIR}SNAKE.ico')
@@ -230,12 +232,30 @@ class Score(TextObject):
 
     def _update(self, snake_length):
         """Update the score."""
-        self.score = snake_length
+        self.score = snake_length - SNAKE_DEF_LENGTH
 
     def draw(self, snake_length):
         """Draw the score."""
         self._update(snake_length)
         super().draw()
+
+
+class Hightscore(Score):
+    """The class describing the hightscore."""
+
+    def __init__(self, hightscore):
+        """Initialize the hightscore."""
+        super().__init__(hightscore)
+        self.text_position = HIGHTSCORE_POSITION
+        self.background_color = None
+
+    def __str__(self):
+        """Generate the hightscore string."""
+        return f'HS: {self.hightscore}'
+
+    def _update(self, hightscore):
+        """Update the hightscore."""
+        self.hightscore = hightscore
 
 
 class Snake(GameObject):
@@ -285,20 +305,24 @@ class Snake(GameObject):
     def draw(self):
         """Draw the snake."""
         # Drawing body sprite instead of head and the tail:
-        if self.length > 2:
+        if self.length > SNAKE_DEF_LENGTH:
             # Drawing the neck:
             self._erase_sprite(self.prev_head_pos)
             if self.rotated:
-                screen.blit(self.turning_bodies[(self.directions_stack[-1],
+                screen.blit(self.turning_bodies[(self.directions_que[-1],
                                                  self.direction)],
                             self.prev_head_pos)
             else:
                 screen.blit(self.body_sprite_rotated[self.direction],
                             self.prev_head_pos)
+        # Deleting point from rotate history if snake body passed it:
+        if self.rotate_points and self.positions[-1] == self.rotate_points[0]:
+            del self.rotate_points[0]
+            del self.directions_que[0]
         # Drawing the tail:
         self._erase_sprite(self.positions[-1])
         screen.blit(self.tail_sprite_rotated[
-            self.directions_stack[0] if self.directions_stack
+            self.directions_que[0] if self.directions_que
             else self.direction
         ], self.positions[-1])
         # Erasing the head cell in case apple has been eaten:
@@ -308,10 +332,6 @@ class Snake(GameObject):
         screen.blit(self.head_sprite_rotated[self.direction], head_position)
         # Reseting the rotate flag:
         self.rotated = False
-        # Deleting point from rotate history if snake body passed it:
-        if self.rotate_points and self.positions[-1] == self.rotate_points[0]:
-            del self.rotate_points[0]
-            del self.directions_stack[0]
 
         # Erasing the last element
         # Checking the coincidence of the head and tail is needed for cases
@@ -346,9 +366,6 @@ class Snake(GameObject):
             # Removing a segment from the snake
             # And save the coordinates for shading in draw():
             self.last = self.positions.pop()
-        if self.rotate_points and self.positions[-1] == self.rotate_points[0]:
-            del self.rotate_points[0]
-            del self.directions_stack[0]
 
     def _rotate_sprite(self, sprite: pygame.surface.Surface) -> dict:
         """Return dict with correctly rotated sprite for every direction."""
@@ -367,13 +384,13 @@ class Snake(GameObject):
         # Erasing the snake:
         fill_background()
         # Reseting the snake:
-        self.length = 2
+        self.length = SNAKE_DEF_LENGTH
         self.positions = [self.position]
         self.direction = RIGHT
         self.rotated = False
         # We will append direction change history here
         # For correct tail rendering:
-        self.directions_stack = []
+        self.directions_que = []
         self.rotate_points = []
 
     def update_direction(self, new_direction):
@@ -381,21 +398,21 @@ class Snake(GameObject):
         self.direction = new_direction
 
 
-def handle_keys(game_object: Snake, results: dict):
+def handle_keys(dificulty: str, game_object: Snake, results: dict):
     """Process user actions."""
     snake_length = game_object.length
     for event in pygame.event.get():
         if (event.type == pygame.QUIT
            or event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-            if not DEBUG and snake_length > 1:
-                save_results(snake_length, results)
+            if not DEBUG and snake_length > SNAKE_DEF_LENGTH:
+                save_results(f'{dificulty}.txt', snake_length, results)
             pygame.quit()
             raise SystemExit
         elif event.type == pygame.KEYDOWN:
             cur_key_direction = (event.key, game_object.direction)
             if cur_key_direction in DIRECTION_KEYS:
                 game_object.rotated = True
-                game_object.directions_stack.append(game_object.direction)
+                game_object.directions_que.append(game_object.direction)
                 game_object.rotate_points.append(game_object.get_head_position)
                 game_object.update_direction(DIRECTION_KEYS[cur_key_direction])
                 # Preventing changing the direction more than 1 time
@@ -404,25 +421,22 @@ def handle_keys(game_object: Snake, results: dict):
 
 
 def handle_main_menu():
-    """Maintain the main menu."""
+    """Maintain the main menu, return dificulty when choosed."""
     pygame.init()
     fill_background()
+    dificulty = 'medium'
+    return dificulty
 
 
-def get_results() -> dict:
+def get_results(file_name: str) -> dict:
     """Get result from specific files."""
-    with open(f'{RESULTS_DIR}hightscore.txt', 'r', encoding="utf-8") as file:
+    with open(RESULTS_DIR + file_name, 'r', encoding="utf-8") as file:
         try:
-            hightscore = int(file.readline())
-        except ValueError:
-            hightscore = 0
-
-    with open(f'{RESULTS_DIR}averangescore.txt',
-              'r', encoding="utf-8") as file:
-        try:
-            averange_score = int(file.readline())
+            hightscore = int(file.readline().strip('\n'))
+            averange_score = int(file.readline().strip('\n'))
             games_played = int(file.readline())
         except ValueError:
+            hightscore = 0
             averange_score = 0
             games_played = 0
     results = {
@@ -433,45 +447,45 @@ def get_results() -> dict:
     return results
 
 
-def save_results(snake_length: int, results: dict):
+def save_results(file_name: str, snake_length: int, results: dict):
     """Save game results."""
-    results['games_played'] += 1
-    games_played = results['games_played']
-    results['averange_score'] = ((results['averange_score'] *
-                                  (games_played - 1) + snake_length) /
-                                 games_played)
-    with open(f'{RESULTS_DIR}hightscore.txt', 'w', encoding="utf-8") as file:
-        file.write(str(results['hightscore']))
-    with open(f'{RESULTS_DIR}averangescore.txt',
-              'w', encoding="utf-8") as file:
-        file.write(f'{results["averange_score"]}\n{games_played}')
+    games_played = results['games_played'] + 1
+    results['averange_score'] = int(((results['averange_score'] *
+                                      results['games_played'] +
+                                      snake_length - SNAKE_DEF_LENGTH) /
+                                     games_played))
+    results['games_played'] = games_played
+    with open(RESULTS_DIR + file_name, 'w', encoding="utf-8") as file:
+        file.write(f'{results["hightscore"]}\n'
+                   f'{results["averange_score"]}\n{games_played}')
 
 
 def main():
     """Maintain the game."""
     # Initializing PyGame and opjects:
-    handle_main_menu()
+    dificulty = handle_main_menu()
     apple = Apple()
     snake = Snake()
     score = Score(snake.length)
-    results = get_results()
+    results = get_results(f'{dificulty}.txt')
+    hightscore = Hightscore(results['hightscore'])
     game_over_inscript = GameOverInscript()
 
     # Starting the game:
     while True:
-        clock.tick(DIFFICULTIES['medium'])
-        handle_keys(snake, results)
+        clock.tick(DIFFICULTIES[dificulty])
+        handle_keys(dificulty, snake, results)
         snake.move()
         # Checking if snake ate the apple:
         if snake.get_head_position == apple.position:
             snake.length += 1
             apple.randomize_position(snake.positions)
-            if snake.length > results['hightscore']:
-                results['hightscore'] = snake.length
+            if snake.length > results['hightscore'] + SNAKE_DEF_LENGTH:
+                results['hightscore'] = snake.length - SNAKE_DEF_LENGTH
         # Checking if the snake has collided with itself:
         elif snake.get_head_position in snake.positions[2:]:
             if not DEBUG:
-                save_results(snake.length, results)
+                save_results(f'{dificulty}.txt', snake.length, results)
             game_over_inscript.draw()
             pygame.display.update()
             clock.tick(0.5)
@@ -479,6 +493,7 @@ def main():
         apple.draw()
         snake.draw()
         score.draw(snake.length)
+        hightscore.draw(results['hightscore'])
         pygame.display.update()
 
 
