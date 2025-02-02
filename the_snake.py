@@ -31,7 +31,7 @@ DIFFICULTY_COLORS = {'easy': (0, 150, 0),
 SNAKE_DEF_LENGTH = 2
 
 # Set this True if you don't want your results to be saved:
-DEBUG = True
+DEBUG = False
 
 RESULTS_DIR = 'results/'
 
