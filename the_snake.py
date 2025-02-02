@@ -19,13 +19,14 @@ BORDER_WIDTH = 6
 
 SCORE_COLOR = (10, 10, 10)
 
-SCORE_BACKGROUND_COLOR = (230, 230, 230)
+SCORE_BACKGROUND_COLOR = (200, 200, 200)
 
-GAME_OVER_COLOR = (203, 9, 9)
-
-DIFFICULTY_COLORS = {'easy': (0, 0, 0), 'medium': (0, 0, 0), 'hard': (0, 0, 0)}
+GAME_OVER_COLOR = (195, 9, 9)
 
 DIFFICULTIES = {'easy': 10, 'medium': 20, 'hard': 30}
+DIFFICULTY_COLORS = {'easy': (0, 150, 0),
+                     'medium': (150, 150, 0),
+                     'hard': (150, 0, 0)}
 
 SNAKE_DEF_LENGTH = 2
 
@@ -49,22 +50,25 @@ SNAKE_TURNING_DOWNRIGHT = 'Snake_turning_downright.png'
 SNAKE_TURNING_LEFTUP = 'Snake_turning_leftup.png'
 SNAKE_TURNING_UPRIGHT = 'Snake_turning_upright.png'
 
+CENTER_POSITION = (SCREEN_WIDTH // 2, GAME_HEIGHT // 2)
+
 SCORE_POSITION = (SCREEN_WIDTH / 2, GAME_HEIGHT + GRID_SIZE / 2 + 4)
 
 HIGHTSCORE_POSITION = (2 * GRID_SIZE, GAME_HEIGHT + GRID_SIZE / 2 + 4)
 
 GAME_OVER_FONT_SIZE = SCREEN_WIDTH // 9
-GAME_OVER_POSITION = (SCREEN_WIDTH / 2, GAME_HEIGHT / 2)
 GAME_OVER_OUTLINE_POS = (
-    (GAME_OVER_POSITION[0] - BORDER_WIDTH,
-     GAME_OVER_POSITION[1] - BORDER_WIDTH),
-    (GAME_OVER_POSITION[0] + BORDER_WIDTH,
-     GAME_OVER_POSITION[1] - BORDER_WIDTH),
-    (GAME_OVER_POSITION[0] - BORDER_WIDTH,
-     GAME_OVER_POSITION[1] + BORDER_WIDTH),
-    (GAME_OVER_POSITION[0] + BORDER_WIDTH,
-     GAME_OVER_POSITION[1] + BORDER_WIDTH)
+    (CENTER_POSITION[0] - BORDER_WIDTH,
+     CENTER_POSITION[1] - BORDER_WIDTH),
+    (CENTER_POSITION[0] + BORDER_WIDTH,
+     CENTER_POSITION[1] - BORDER_WIDTH),
+    (CENTER_POSITION[0] - BORDER_WIDTH,
+     CENTER_POSITION[1] + BORDER_WIDTH),
+    (CENTER_POSITION[0] + BORDER_WIDTH,
+     CENTER_POSITION[1] + BORDER_WIDTH)
 )
+
+DIFFICULTY_SIZE = SCREEN_WIDTH // 18
 
 # Create statistics files if does not exist:
 open(f'{RESULTS_DIR}easy.txt', 'a').close()
@@ -127,7 +131,7 @@ class GameObject:
     def __init__(self):
         """Initialize a game object."""
         self.sprite = None
-        self.position = ((SCREEN_WIDTH // 2), (GAME_HEIGHT // 2))
+        self.position = CENTER_POSITION
 
     def draw(self):
         """Draw an object."""
@@ -178,15 +182,27 @@ class Apple(GameObject):
         self.position = choice(get_free_positions(snake_positions))
 
 
-class DifficultButtonInscript(TextObject):
+class DifficultyButtonInscript(TextObject):
     """The class for inscription on the difficulty buttton in the main menu."""
+
+    difficulties = tuple(DIFFICULTIES.keys())
 
     def __init__(self, difficulty):
         """Initialize the difficulty button inscription."""
+        self.difficulty = difficulty
         super().__init__()
         self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{MAIN_FONT}',
-                                     GRID_SIZE - 4)
+                                     DIFFICULTY_SIZE)
         self.text_color = DIFFICULTY_COLORS[difficulty]
+        self.text_position = (
+            GAME_HEIGHT // len(self.difficulties)
+            * (self.difficulties.index(difficulty) + 1),
+            CENTER_POSITION[1]
+        )
+
+    def __str__(self):
+        """Return difficulty string."""
+        return self.difficulty
 
 
 class GameOverInscript(TextObject):
@@ -198,7 +214,7 @@ class GameOverInscript(TextObject):
         self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{MAIN_FONT}',
                                      GAME_OVER_FONT_SIZE)
         self.text_color = GAME_OVER_COLOR
-        self.text_position = GAME_OVER_POSITION
+        self.text_position = CENTER_POSITION
 
     def __str__(self):
         """Generate the game over string."""
@@ -403,14 +419,19 @@ class Snake(GameObject):
         self.direction = new_direction
 
 
-def handle_keys(dificulty: str, game_object: Snake, results: dict):
+def is_quited(event):
+    """Check if quit event happend."""
+    return (event.type == pygame.QUIT
+            or event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE)
+
+
+def handle_keys(difficulty: str, game_object: Snake, results: dict):
     """Process user actions."""
     snake_length = game_object.length
     for event in pygame.event.get():
-        if (event.type == pygame.QUIT
-           or event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+        if is_quited(event):
             if not DEBUG and snake_length > SNAKE_DEF_LENGTH:
-                save_results(f'{dificulty}.txt', snake_length, results)
+                save_results(f'{difficulty}.txt', snake_length, results)
             pygame.quit()
             raise SystemExit
         elif event.type == pygame.KEYDOWN:
@@ -425,12 +446,32 @@ def handle_keys(dificulty: str, game_object: Snake, results: dict):
                 break
 
 
-def handle_main_menu():
-    """Maintain the main menu, return dificulty when choosed."""
-    pygame.init()
+def handle_main_menu() -> str:
+    """Maintain the main menu, return difficulty when choosed."""
     fill_background()
-    dificulty = 'medium'
-    return dificulty
+    difficulties = (
+        DifficultyButtonInscript('easy'),
+        DifficultyButtonInscript('medium'),
+        DifficultyButtonInscript('hard')
+    )
+    for difficulty in difficulties:
+        difficulty.draw()
+    pygame.display.update()
+    # Checking difficulty choosing:
+    while True:
+        for event in pygame.event.get():
+            if is_quited(event):
+                pygame.quit()
+                raise SystemExit
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if (CENTER_POSITION[1] - 100
+                   < event.pos[1] < CENTER_POSITION[1] + 100):
+                    choosed_difficulty = difficulties[
+                        2 - (SCREEN_WIDTH - event.pos[0])
+                        // (SCREEN_WIDTH // len(difficulties))
+                    ].__str__()
+                    fill_background()
+                    return choosed_difficulty
 
 
 def get_results(file_name: str) -> dict:
@@ -467,19 +508,23 @@ def save_results(file_name: str, snake_length: int, results: dict):
 
 def main():
     """Maintain the game."""
-    # Initializing PyGame and opjects:
-    dificulty = handle_main_menu()
+    # Initialising pygame and the objects:
+    pygame.init()
     apple = Apple()
     snake = Snake()
     score = Score(snake.length)
-    results = get_results(f'{dificulty}.txt')
-    hightscore = Hightscore(results['hightscore'])
+    score.draw(snake.length)
     game_over_inscript = GameOverInscript()
+    # Starting main menu to choose difficulty:
+    difficulty = handle_main_menu()
+    # Getting statistics:
+    results = get_results(f'{difficulty}.txt')
+    hightscore = Hightscore(results['hightscore'])
 
     # Starting the game:
     while True:
-        clock.tick(DIFFICULTIES[dificulty])
-        handle_keys(dificulty, snake, results)
+        clock.tick(DIFFICULTIES[difficulty])
+        handle_keys(difficulty, snake, results)
         snake.move()
         # Checking if snake ate the apple:
         if snake.get_head_position == apple.position:
@@ -490,7 +535,7 @@ def main():
         # Checking if the snake has collided with itself:
         elif snake.get_head_position in snake.positions[2:]:
             if not DEBUG:
-                save_results(f'{dificulty}.txt', snake.length, results)
+                save_results(f'{difficulty}.txt', snake.length, results)
             game_over_inscript.draw()
             pygame.display.update()
             clock.tick(0.5)
