@@ -1,4 +1,5 @@
 """The Snake game."""
+from itertools import product
 from random import choice
 
 import pygame
@@ -57,16 +58,13 @@ SCORE_POSITION = (SCREEN_WIDTH / 2, GAME_HEIGHT + GRID_SIZE / 2 + 4)
 HIGHTSCORE_POSITION = (2 * GRID_SIZE, GAME_HEIGHT + GRID_SIZE / 2 + 4)
 
 GAME_OVER_FONT_SIZE = SCREEN_WIDTH // 9
-GAME_OVER_OUTLINE_POS = (
-    (CENTER_POSITION[0] - BORDER_WIDTH,
-     CENTER_POSITION[1] - BORDER_WIDTH),
-    (CENTER_POSITION[0] + BORDER_WIDTH,
-     CENTER_POSITION[1] - BORDER_WIDTH),
-    (CENTER_POSITION[0] - BORDER_WIDTH,
-     CENTER_POSITION[1] + BORDER_WIDTH),
-    (CENTER_POSITION[0] + BORDER_WIDTH,
-     CENTER_POSITION[1] + BORDER_WIDTH)
-)
+# Setting outline positions so that it protrudes per BORDER_WIDTH on each side:
+X_GAME_OVER_OUTLINE_BORDERS = (CENTER_POSITION[0] - BORDER_WIDTH,
+                               CENTER_POSITION[0] + BORDER_WIDTH)
+Y_GAME_OVER_OUTLINE_BORDERS = (CENTER_POSITION[1] - BORDER_WIDTH,
+                               CENTER_POSITION[1] + BORDER_WIDTH)
+GAME_OVER_OUTLINE_POS = product(X_GAME_OVER_OUTLINE_BORDERS,
+                                Y_GAME_OVER_OUTLINE_BORDERS)
 
 DIFFICULTY_SIZE = SCREEN_WIDTH // 18
 
@@ -514,7 +512,6 @@ def main():
     snake = Snake()
     score = Score(snake.length)
     score.draw(snake.length)
-    game_over_inscript = GameOverInscript()
     # Starting main menu to choose difficulty:
     difficulty = handle_main_menu()
     # Getting statistics:
@@ -536,6 +533,7 @@ def main():
         elif snake.get_head_position in snake.positions[2:]:
             if not DEBUG:
                 save_results(f'{difficulty}.txt', snake.length, results)
+            game_over_inscript = GameOverInscript()
             game_over_inscript.draw()
             pygame.display.update()
             clock.tick(0.5)
