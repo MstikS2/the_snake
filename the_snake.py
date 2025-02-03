@@ -59,12 +59,10 @@ HIGHTSCORE_POSITION = (2 * GRID_SIZE, GAME_HEIGHT + GRID_SIZE / 2 + 4)
 
 GAME_OVER_FONT_SIZE = SCREEN_WIDTH // 9
 # Setting outline positions so that it protrudes per BORDER_WIDTH on each side:
-X_GAME_OVER_OUTLINE_BORDERS = (CENTER_POSITION[0] - BORDER_WIDTH,
-                               CENTER_POSITION[0] + BORDER_WIDTH)
-Y_GAME_OVER_OUTLINE_BORDERS = (CENTER_POSITION[1] - BORDER_WIDTH,
-                               CENTER_POSITION[1] + BORDER_WIDTH)
-GAME_OVER_OUTLINE_POS = product(X_GAME_OVER_OUTLINE_BORDERS,
-                                Y_GAME_OVER_OUTLINE_BORDERS)
+GAME_OVER_OUTLINE_POS = product(
+    (CENTER_POSITION[0] - BORDER_WIDTH, CENTER_POSITION[0] + BORDER_WIDTH),
+    (CENTER_POSITION[1] - BORDER_WIDTH, CENTER_POSITION[1] + BORDER_WIDTH)
+)
 
 DIFFICULTY_SIZE = SCREEN_WIDTH // 18
 
@@ -511,6 +509,9 @@ def main():
     apple = Apple()
     snake = Snake()
     score = Score(snake.length)
+    # The backround is filled during snake.reset() in snake.__init__().
+    # Now drawing the lower row for score
+    # So it won't be empty during difficulty choosing:
     score.draw(snake.length)
     # Starting main menu to choose difficulty:
     difficulty = handle_main_menu()
