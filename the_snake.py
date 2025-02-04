@@ -15,7 +15,10 @@ DOWN = (0, 1)
 LEFT = (-1, 0)
 RIGHT = (1, 0)
 
-BORDER_COLOR = (0, 0, 0)
+# Border color for "Game Over":
+GO_BORDER_COLOR = (5, 5, 5)
+# Border color for "You won!":
+V_BORDER_COLOR = (240, 240, 240)
 BORDER_WIDTH = 6
 
 SCORE_COLOR = (10, 10, 10)
@@ -23,6 +26,7 @@ SCORE_COLOR = (10, 10, 10)
 SCORE_BACKGROUND_COLOR = (200, 200, 200)
 
 GAME_OVER_COLOR = (195, 9, 9)
+VICTORY_COLOR = (20, 180, 20)
 
 DIFFICULTIES = {'easy': 10, 'medium': 20, 'hard': 30}
 DIFFICULTY_COLORS = {'easy': (0, 150, 0),
@@ -57,9 +61,9 @@ SCORE_POSITION = (SCREEN_WIDTH / 2, GAME_HEIGHT + GRID_SIZE / 2 + 4)
 
 HIGHTSCORE_POSITION = (2 * GRID_SIZE, GAME_HEIGHT + GRID_SIZE / 2 + 4)
 
-GAME_OVER_FONT_SIZE = SCREEN_WIDTH // 9
+EVENT_TEXT_FONT_SIZE = SCREEN_WIDTH // 9
 # Setting outline positions so that it protrudes per BORDER_WIDTH on each side:
-GAME_OVER_OUTLINE_POS = product(
+CENTER_TEXT_OUTLINE_POS = product(
     (CENTER_POSITION[0] - BORDER_WIDTH, CENTER_POSITION[0] + BORDER_WIDTH),
     (CENTER_POSITION[1] - BORDER_WIDTH, CENTER_POSITION[1] + BORDER_WIDTH)
 )
@@ -164,18 +168,52 @@ class TextObject:
         screen.blit(text_inscript, text_rect)
 
 
+class EventText(TextObject):
+    """The class template for text for game events like loss, victory etc."""
+
+    def __init__(self):
+        """Initialize the event inscript."""
+        super().__init__()
+        self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{MAIN_FONT}',
+                                     EVENT_TEXT_FONT_SIZE)
+        self.text_position = CENTER_POSITION
+        self.event = ''
+        self.border_color = None
+
+    def __str__(self):
+        """Generate the event string."""
+        return self.event
+
+    def _draw_outline(self, outline_position):
+        text_inscript = self.font.render(self.__str__(),
+                                         True, self.border_color)
+        text_rect = text_inscript.get_rect(center=outline_position)
+        screen.blit(text_inscript, text_rect)
+
+    def draw(self):
+        """Draw the event text."""
+        # Making the outline
+        for position in CENTER_TEXT_OUTLINE_POS:
+            self._draw_outline(position)
+        super().draw()
+
+
 # Game classes:
 class Apple(GameObject):
     """The class describing an apple and actions with it."""
 
-    def __init__(self):
+    def __init__(self, snake):
         """Initialize an apple."""
         self.sprite = load_image(APPLE_SPRITE)
-        self.randomize_position()
+        self.randomize_position(snake)
 
-    def randomize_position(self, snake_positions=None):
+    def randomize_position(self, snake):
         """Set a random position of the apple on the playing field."""
-        self.position = choice(get_free_positions(snake_positions))
+        # Generating a new apple if there are free positions, else victory:
+        try:
+            self.position = choice(get_free_positions(snake.positions))
+        except IndexError:
+            snake.won = True
 
 
 class DifficultyButtonInscript(TextObject):
@@ -201,32 +239,15 @@ class DifficultyButtonInscript(TextObject):
         return self.difficulty
 
 
-class GameOverInscript(TextObject):
+class GameOverInscript(EventText):
     """The class descibing the inscript, what apears when the game is over."""
 
     def __init__(self):
         """Initialize the game over inscript."""
         super().__init__()
-        self.font = pygame.font.Font(f'{GRAPHICS_DIR}fonts/{MAIN_FONT}',
-                                     GAME_OVER_FONT_SIZE)
         self.text_color = GAME_OVER_COLOR
-        self.text_position = CENTER_POSITION
-
-    def __str__(self):
-        """Generate the game over string."""
-        return 'Game over'
-
-    def _draw_outline(self, outline_position):
-        text_inscript = self.font.render(self.__str__(), True, BORDER_COLOR)
-        text_rect = text_inscript.get_rect(center=outline_position)
-        screen.blit(text_inscript, text_rect)
-
-    def draw(self):
-        """Draw the game over."""
-        # Making the outline
-        for position in GAME_OVER_OUTLINE_POS:
-            self._draw_outline(position)
-        super().draw()
+        self.event = 'Game Over'
+        self.border_color = GO_BORDER_COLOR
 
 
 class Score(TextObject):
@@ -277,6 +298,8 @@ class Hightscore(Score):
 
 class Snake(GameObject):
     """The class describing a snake and its behavior."""
+
+    won = False
 
     def __init__(self):
         """Initialize a snake."""
@@ -398,6 +421,7 @@ class Snake(GameObject):
 
     def reset(self):
         """Reset the snake to its initial state."""
+        self.won = False
         # Erasing the snake:
         fill_background()
         # Reseting the snake:
@@ -415,6 +439,17 @@ class Snake(GameObject):
         self.direction = new_direction
 
 
+class VictoryInscript(EventText):
+    """The class descibing the inscript, what apears when the game is won."""
+
+    def __init__(self):
+        """Initialize the victory inscript."""
+        super().__init__()
+        self.text_color = VICTORY_COLOR
+        self.event = 'You won!'
+        self.border_color = V_BORDER_COLOR
+
+
 def is_quited(event):
     """Check if quit event happend."""
     return (event.type == pygame.QUIT
@@ -426,7 +461,7 @@ def handle_keys(difficulty: str, game_object: Snake, results: dict):
     snake_length = game_object.length
     for event in pygame.event.get():
         if is_quited(event):
-            if not DEBUG and snake_length > SNAKE_DEF_LENGTH:
+            if snake_length > SNAKE_DEF_LENGTH:
                 save_results(f'{difficulty}.txt', snake_length, results)
             pygame.quit()
             raise SystemExit
@@ -491,23 +526,32 @@ def get_results(file_name: str) -> dict:
 
 def save_results(file_name: str, snake_length: int, results: dict):
     """Save game results."""
-    games_played = results['games_played'] + 1
-    results['averange_score'] = int(((results['averange_score'] *
-                                      results['games_played'] +
-                                      snake_length - SNAKE_DEF_LENGTH) /
-                                     games_played))
-    results['games_played'] = games_played
-    with open(RESULTS_DIR + file_name, 'w', encoding="utf-8") as file:
-        file.write(f'{results["hightscore"]}\n'
-                   f'{results["averange_score"]}\n{games_played}')
+    if not DEBUG:
+        games_played = results['games_played'] + 1
+        results['averange_score'] = int(((results['averange_score'] *
+                                        results['games_played'] +
+                                        snake_length - SNAKE_DEF_LENGTH) /
+                                        games_played))
+        results['games_played'] = games_played
+        with open(RESULTS_DIR + file_name, 'w', encoding="utf-8") as file:
+            file.write(f'{results["hightscore"]}\n'
+                       f'{results["averange_score"]}\n{games_played}')
+
+
+def win():
+    """Generate and draw victory inscript."""
+    victory = VictoryInscript()
+    victory.draw()
+    pygame.display.update()
+    clock.tick(0.1)
 
 
 def main():
     """Maintain the game."""
     # Initialising pygame and the objects:
     pygame.init()
-    apple = Apple()
     snake = Snake()
+    apple = Apple(snake)
     score = Score(snake.length)
     # The backround is filled during snake.reset() in snake.__init__().
     # Now drawing the lower row for score
@@ -527,13 +571,17 @@ def main():
         # Checking if snake ate the apple:
         if snake.get_head_position == apple.position:
             snake.length += 1
-            apple.randomize_position(snake.positions)
             if snake.length > results['hightscore'] + SNAKE_DEF_LENGTH:
                 results['hightscore'] = snake.length - SNAKE_DEF_LENGTH
+            apple.randomize_position(snake)
+            if snake.won:
+                win()
+                save_results(f'{difficulty}.txt', snake.length, results)
+                snake.reset()
+                apple.randomize_position(snake)
         # Checking if the snake has collided with itself:
         elif snake.get_head_position in snake.positions[2:]:
-            if not DEBUG:
-                save_results(f'{difficulty}.txt', snake.length, results)
+            save_results(f'{difficulty}.txt', snake.length, results)
             game_over_inscript = GameOverInscript()
             game_over_inscript.draw()
             pygame.display.update()
